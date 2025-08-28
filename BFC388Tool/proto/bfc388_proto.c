@@ -213,8 +213,8 @@ int bfc388_send(uint8_t mid, const uint8_t* data, uint16_t size)
 	msgBuf[0] = SYNC_H;
 	msgBuf[1] = SYNC_L;
 	msgBuf[2] = mid;
-    msgBuf[3] = (uint8_t)(size & 0xFF);
-    msgBuf[4] = (uint8_t)(size >> 8);
+    msgBuf[3] = (uint8_t)(size >> 8); 
+    msgBuf[4] = (uint8_t)(size & 0xFF);
 	if (size > 0)
 	{
 		memcpy(msgBuf + 5, data, size);

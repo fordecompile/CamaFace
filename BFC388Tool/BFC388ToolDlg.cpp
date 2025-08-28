@@ -199,7 +199,7 @@ void CBFC388ToolDlg::StartEnroll5()
 void CBFC388ToolDlg::SendNextEnrollDirection()
 {
     if (m_enrollIndex >= m_enrollOrder.size()) {
-        AppendLog(L"Enroll(5-dir) complete.");
+        AppendLog(L"Enroll complete.");
         return;
     }
     uint8_t dir = m_enrollOrder[m_enrollIndex];
@@ -232,7 +232,7 @@ void CBFC388ToolDlg::OnBnClickedBtnEnrollSingle()
     wchar_t namebuf[33] = {0};
     m_edName.GetWindowText(namebuf, 32);
     bool admin = (m_chkAdmin.GetCheck() == BST_CHECKED);
-    bfc388_enroll_single((uint8_t)admin, namebuf, FACE_DIRECTION_MIDDLE, 10);
+    bfc388_enroll_single((uint8_t)admin, namebuf, FACE_DIRECTION_UNDEFINE, 0xFF);
     AppendLog(L"Single-frame enroll started.");
 }
 
@@ -398,9 +398,20 @@ LRESULT CBFC388ToolDlg::OnNoteMsg(WPARAM wParam, LPARAM lParam)
             // s_note_data_face: state, left, top, right, bottom, yaw, pitch, roll (all int16)
             const int16_t* p = (const int16_t*)(payload+2);
             int16_t state = p[0];
-            int16_t yaw = p[5], pitch = p[6], roll = p[7];
-            CString s2; s2.Format(L"FaceState: %s (yaw=%d, pitch=%d, roll=%d)", FaceStateToString(state), yaw, pitch, roll);
-            AppendLog(s2);
+
+			static DWORD lastTick = 0;
+			static int16_t lastState = -1000;
+
+			DWORD curTick = GetTickCount();
+			if (state != lastState || (curTick - lastTick >= 3000))
+			{
+				int16_t yaw = p[5], pitch = p[6], roll = p[7];
+				CString s2; s2.Format(L"FaceState: %s (yaw=%d, pitch=%d, roll=%d)", FaceStateToString(state), yaw, pitch, roll);
+				AppendLog(s2);
+			}
+			
+			lastState = state;
+			lastTick = curTick;
         }
     } else if (nid == 0 /*READY*/) {
         AppendLog(L"NOTE: Module READY");
@@ -473,7 +484,7 @@ LRESULT CBFC388ToolDlg::OnReplyMsg(WPARAM wParam, LPARAM lParam)
             AppendLog(s);
             CString list(L"IDs: ");
             for (UINT i=0; i<cnt; ++i) {
-                if (2 + i*2 + 1 < size) {
+                if (2 + i*2 + 1 <= size) {
                     uint16_t uid = (data[1+i*2]<<8) | data[2+i*2];
                     CString t; t.Format(L"%u ", uid);
                     list += t;
