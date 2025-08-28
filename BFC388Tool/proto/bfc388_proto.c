@@ -35,95 +35,151 @@ void bfc388_set_callbacks(fc_on_reply r, fc_on_note n, fc_on_image i, void* user
 
 static DWORD WINAPI rx_thread_proc(LPVOID lp)
 {
-    (void)lp;
-    enum { S_SYNC1, S_SYNC2, S_MSGID, S_SIZE1, S_SIZE2, S_DATA, S_CHECK } state = S_SYNC1;
-    uint8_t msgid = 0;
-    uint16_t size = 0;
-    uint16_t got = 0;
-    uint8_t* data = NULL;
-    uint8_t chk = 0, calc = 0;
+	(void)lp;
 
-    for (;;)
-    {
-        if (InterlockedCompareExchange(&g_rxStop, 0, 0)) break;
-        uint8_t b = 0;
-        int r = sp_read(&b, 1, 50); // 50ms timeout
-        if (r <= 0) continue;
-        switch (state)
-        {
-        case S_SYNC1:
-            if (b == SYNC_H) state = S_SYNC2;
-            break;
-        case S_SYNC2:
-            if (b == SYNC_L) state = S_MSGID;
-            else state = S_SYNC1;
-            break;
-        case S_MSGID:
-            msgid = b;
-            state = S_SIZE1;
-            break;
-        case S_SIZE1:
-            size = (uint16_t)b;
-            state = S_SIZE2;
-            break;
-        case S_SIZE2:
-            size |= ((uint16_t)b << 8);
-            if (size > 0) {
-                data = (uint8_t*)malloc(size);
-                got = 0;
-                state = S_DATA;
-            } else {
-                state = S_CHECK;
-            }
-            break;
-        case S_DATA:
-            data[got++] = b;
-            if (got >= size) state = S_CHECK;
-            break;
-        case S_CHECK:
-            chk = b;
-            // reconstruct check region: MsgID + Size(2) + Data(N)
-            {
-                uint8_t* buf = (uint8_t*)malloc(1 + 2 + size);
-                buf[0] = msgid;
-                buf[1] = (uint8_t)(size & 0xFF);
-                buf[2] = (uint8_t)(size >> 8);
-                if (size) memcpy(buf + 3, data, size);
-                calc = calc_xor(buf, 1 + 2 + size);
-                free(buf);
-            }
-            if (calc == chk) {
-                // Dispatch
-                if (msgid == MID_REPLY) {
-                    // data: mid(1) result(1) payload...
-                    if (size >= 2 && g_on_reply) {
-                        uint8_t mid = data[0], result = data[1];
-                        const uint8_t* payload = (size > 2) ? (data + 2) : NULL;
-                        uint16_t psz = (size > 2) ? (size - 2) : 0;
-                        g_on_reply(mid, result, payload, psz, g_user);
-                    }
-                } else if (msgid == MID_NOTE) {
-                    if (size >= 1 && g_on_note) {
-                        uint8_t nid = data[0];
-                        const uint8_t* payload = (size > 1) ? (data + 1) : NULL;
-                        uint16_t psz = (size > 1) ? (size - 1) : 0;
-                        g_on_note(nid, payload, psz, g_user);
-                    }
-                } else if (msgid == MID_IMAGE) {
-                    if (g_on_image && size>0) {
-                        g_on_image(data, size, g_user);
-                        // g_on_image takes ownership copy in UI; free here after dispatch below
-                    }
-                }
-            }
-            if (data) free(data);
-            data = NULL; size = 0; got = 0;
-            state = S_SYNC1;
-            break;
-        }
-    }
-    return 0;
+	// Fixed 4KB buffer first, expand with malloc only when a single message is larger than 4KB.
+	static uint8_t fixed_buf[4096];
+	uint8_t* buf = fixed_buf;
+	size_t   cap = sizeof(fixed_buf);
+	size_t   have = 0;
+	int      using_heap = 0;
+
+	for (;;)
+	{
+		if (InterlockedCompareExchange(&g_rxStop, 0, 0)) break;
+
+		// 1) First read: try to read up to 4096 bytes at once.
+		//    If < 5 bytes (EF AA + MsgID + SizeL + SizeH not fully available), keep reading until >=5 or timeout.
+		if (have < 5) {
+			int r = sp_read(buf + have, (int)(cap - have), 500); // try read as much as possible (4KB initially)
+			if (r > 0) {
+				have += (size_t)r;
+			}
+			else {
+				// timeout or error -> next loop / check stop
+				continue;
+			}
+			if (have < 5) {
+				// still not enough header (need at least 5 bytes to know total length)
+				continue;
+			}
+		}
+
+		// 2) Find sync header 0xEF 0xAA in the buffered data; discard leading noise if any.
+		//    Keep at least one byte if the last is SYNC_H to handle boundary case.
+		for (;;) {
+			if (have >= 2 && buf[0] == SYNC_H && buf[1] == SYNC_L) break;
+			if (have == 0) break;
+			// slide forward to next potential sync
+			size_t shift = 1;
+			// try to skip fast by searching next 0xEF
+			size_t i = 0;
+			for (i = 0; i + 1 < have; ++i) {
+				if (buf[i] == SYNC_H && buf[i + 1] == SYNC_L) { shift = i; break; }
+			}
+			if (i + 1 >= have) shift = have >= 1 ? (have - 1) : 1; // keep last byte if it's possible part of sync
+			if (shift > 0) {
+				memmove(buf, buf + shift, have - shift);
+				have -= shift;
+			}
+			if (have < 2) {
+				// need more to check sync
+				int r = sp_read(buf + have, (int)(cap - have), 50);
+				if (r > 0) have += (size_t)r;
+				else break; // timeout; go outer loop
+			}
+		}
+		if (have < 5) continue; // need full header (EF AA + id + sizeL + sizeH)
+
+		// 3) We have at least header, compute total frame length: 2(sync)+1(id)+2(size)+N(data)+1(chk)
+		uint8_t  msgid = buf[2];
+		uint16_t size = (((uint16_t)buf[3]) << 8) | ((uint16_t)buf[4]);
+		size_t   total = 6 + (size_t)size;
+
+		// 4) If the current message is larger than 4KB buffer, allocate a bigger one and copy existing bytes.
+		if (total > cap) {
+			uint8_t* nb = (uint8_t*)malloc(total);
+			if (!nb) {
+				// OOM: drop current bytes and resync
+				have = 0;
+				if (using_heap) { free(buf); buf = fixed_buf; cap = sizeof(fixed_buf); using_heap = 0; }
+				continue;
+			}
+			memcpy(nb, buf, have);
+			if (using_heap) free(buf);
+			buf = nb; cap = total; using_heap = 1;
+		}
+
+		// 5) If we still don't have a full message, keep reading until full message is received or timeout.
+		if (have < total) {
+			int r = sp_read(buf + have, (int)(total - have), 50);
+			if (r > 0) {
+				have += (size_t)r;
+				if (have < total) continue; // still not enough
+			}
+			else {
+				continue; // timeout or error -> try again next loop
+			}
+		}
+
+		if (have < total) continue; // safety
+
+		// 6) Now we have a complete message in buf[0..total-1], verify XOR.
+		uint8_t chk = buf[5 + size];
+		uint8_t calc = calc_xor(buf + 2, (uint32_t)(3 + size)); // MsgID + Size(2) + Data(N)
+
+		if (calc == chk) {
+			// Dispatch just like the old state machine did. Data points to buf+5 with length 'size'.
+			const uint8_t* data = buf + 5;
+
+			if (msgid == MID_REPLY) {
+				if (size >= 2 && g_on_reply) {
+					uint8_t mid = data[0], result = data[1];
+					const uint8_t* payload = (size > 2) ? (data + 2) : NULL;
+					uint16_t psz = (size > 2) ? (uint16_t)(size - 2) : 0;
+					g_on_reply(mid, result, payload, psz, g_user);
+				}
+			}
+			else if (msgid == MID_NOTE) {
+				if (size >= 1 && g_on_note) {
+					uint8_t nid = data[0];
+					const uint8_t* payload = (size > 1) ? (data + 1) : NULL;
+					uint16_t psz = (size > 1) ? (uint16_t)(size - 1) : 0;
+					g_on_note(nid, payload, psz, g_user);
+				}
+			}
+			else if (msgid == MID_IMAGE) {
+				if (g_on_image && size > 0) {
+					g_on_image(data, (uint16_t)size, g_user);
+				}
+			}
+		}
+
+		// 7) If buffer contains more than one message, move leftover to the front for next loop.
+		if (have > total) {
+			size_t remain = have - total;
+			memmove(buf, buf + total, remain);
+			have = remain;
+
+			// If we were using heap but the remaining data fits in 4KB, shrink back to fixed buffer.
+			if (using_heap && cap > sizeof(fixed_buf) && remain <= sizeof(fixed_buf)) {
+				memcpy(fixed_buf, buf, remain);
+				free(buf);
+				buf = fixed_buf;
+				cap = sizeof(fixed_buf);
+				using_heap = 0;
+			}
+		}
+		else {
+			// exact or consumed all
+			have = 0;
+			if (using_heap) { free(buf); buf = fixed_buf; cap = sizeof(fixed_buf); using_heap = 0; }
+		}
+	}
+	if (using_heap) free(buf);
+	return 0;
 }
+
 
 int bfc388_open(const wchar_t* com_port, int baud)
 {
