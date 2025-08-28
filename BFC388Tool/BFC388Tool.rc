@@ -1,45 +1,130 @@
+// Microsoft Visual C++ generated resource script.
+//
 #include "resource.h"
-#include <windows.h>
 
-IDD_BFC388TOOL_DIALOG DIALOGEX 0, 0, 620, 430
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#ifndef APSTUDIO_INVOKED
+#include "targetver.h"
+#endif
+#include "afxres.h"
+#include "verrsrc.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 中文(简体，中国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+#pragma code_page(936)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_BFC388TOOL_DIALOG DIALOGEX 0, 0, 474, 334
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "BFC388 Face Tool"
-FONT 9, "Segoe UI"
+FONT 9, "Segoe UI", 0, 0, 0x1
 BEGIN
-    LTEXT "COM Port:", -1, 10,10, 50, 12
-    COMBOBOX IDC_COMBO_PORT, 65,8, 110, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT "Baud:", -1, 180,10, 30,12
-    COMBOBOX IDC_COMBO_BAUD, 215,8, 80, 120, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON "Open", IDC_BTN_OPEN, 305,7, 50, 14
-    PUSHBUTTON "Close", IDC_BTN_CLOSE, 360,7, 50, 14
-
-    GROUPBOX "Operations", -1, 10,30, 240, 195
-    LTEXT "User Name:", -1, 20,45, 60,12
-    EDITTEXT IDC_EDIT_NAME, 80,43, 155, 14, ES_LEFT | WS_TABSTOP
-    LTEXT "User ID:", -1, 20, 63, 60,12
-    EDITTEXT IDC_EDIT_ID, 80, 61, 70, 14, ES_NUMBER | WS_TABSTOP
-    CHECKBOX "Admin", IDC_CHECK_ADMIN, 160, 63, 50, 12
-
-    PUSHBUTTON "Enroll (5-dir)", IDC_BTN_ENROLL5, 20,85, 100, 16
-    PUSHBUTTON "Enroll (Single)", IDC_BTN_ENROLL_SINGLE, 125,85, 110, 16
-
-    PUSHBUTTON "Verify Once", IDC_BTN_VERIFY, 20,105, 90, 16
-    PUSHBUTTON "Verify Continuous", IDC_BTN_VERIFY_CONT, 115,105, 120,16
-    PUSHBUTTON "Cancel", IDC_BTN_CANCEL, 20, 125, 80, 16
-
-    PUSHBUTTON "Delete ID", IDC_BTN_DELID, 105,125, 80,16
-    PUSHBUTTON "Delete All", IDC_BTN_DELALL, 190,125, 80,16
-
-    PUSHBUTTON "List All IDs", IDC_BTN_LISTIDS, 20, 145, 100,16
-    PUSHBUTTON "Snap Image", IDC_BTN_SNAP, 125, 145, 80,16
-
-    PUSHBUTTON "Upload Template", IDC_BTN_UPLOAD_CHAR, 20, 165, 110, 16
-    PUSHBUTTON "Download Template", IDC_BTN_DOWNLOAD_CHAR, 135, 165, 120,16
-
-    GROUPBOX "Image", -1, 260,30, 350, 260
-    CONTROL "", IDC_PICTURE, "Static", SS_BLACKRECT | SS_NOTIFY | WS_BORDER, 270, 45, 330, 240
-
-    GROUPBOX "Log", -1, 10,230, 240, 180
-    EDITTEXT IDC_EDIT_LOG, 20,245, 220, 160, ES_MULTILINE | ES_READONLY | WS_VSCROLL
-
+    LTEXT           "COM Port:",-1,10,10,50,12
+    COMBOBOX        IDC_COMBO_PORT,65,8,110,120,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Baud:",-1,180,10,30,12
+    COMBOBOX        IDC_COMBO_BAUD,215,8,80,120,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Open",IDC_BTN_OPEN,305,7,50,14
+    PUSHBUTTON      "Close",IDC_BTN_CLOSE,360,7,50,14
+    GROUPBOX        "Operations",-1,10,30,240,195
+    LTEXT           "User Name:",-1,20,45,60,12
+    EDITTEXT        IDC_EDIT_NAME,80,43,155,14
+    LTEXT           "User ID:",-1,20,63,60,12
+    EDITTEXT        IDC_EDIT_ID,80,61,70,14,ES_NUMBER
+    CHECKBOX        "Admin",IDC_CHECK_ADMIN,160,63,50,12
+    PUSHBUTTON      "Enroll (5-dir)",IDC_BTN_ENROLL5,27,84,85,16
+    PUSHBUTTON      "Enroll (Single)",IDC_BTN_ENROLL_SINGLE,137,84,85,16
+    PUSHBUTTON      "Verify Once",IDC_BTN_VERIFY,27,104,85,16
+    PUSHBUTTON      "Verify Continuous",IDC_BTN_VERIFY_CONT,137,104,85,16
+    PUSHBUTTON      "Cancel",IDC_BTN_CANCEL,137,192,85,16
+    PUSHBUTTON      "Delete ID",IDC_BTN_DELID,27,124,85,16
+    PUSHBUTTON      "Delete All",IDC_BTN_DELALL,137,124,85,16
+    PUSHBUTTON      "List All IDs",IDC_BTN_LISTIDS,27,144,85,16
+    PUSHBUTTON      "Snap Image",IDC_BTN_SNAP,137,144,85,16
+    PUSHBUTTON      "Upload Template",IDC_BTN_UPLOAD_CHAR,27,164,85,16
+    PUSHBUTTON      "Download Template",IDC_BTN_DOWNLOAD_CHAR,137,164,85,16
+    GROUPBOX        "Image",-1,260,30,214,162
+    CONTROL         "",IDC_PICTURE,"Static",SS_BLACKRECT | SS_NOTIFY | WS_BORDER,270,45,187,135
+    GROUPBOX        "Log",-1,10,230,240,104
+    EDITTEXT        IDC_EDIT_LOG,20,245,220,76,ES_MULTILINE | ES_READONLY | WS_VSCROLL
 END
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_BFC388TOOL_DIALOG, DIALOG
+    BEGIN
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_BFC388TOOL_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+#endif    // 中文(简体，中国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

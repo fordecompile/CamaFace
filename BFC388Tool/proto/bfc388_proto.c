@@ -8,6 +8,8 @@
 // Packet format: 0xEF 0xAA | MsgID(1) | Size(2) | Data(N) | XOR(1)
 // XOR = XOR of all bytes except the 2-byte SyncWord
 
+#define MAX_CMD_LEN		256
+
 #define SYNC_H 0xEF
 #define SYNC_L 0xAA
 
@@ -145,18 +147,31 @@ void bfc388_close(void)
 
 int bfc388_send(uint8_t mid, const uint8_t* data, uint16_t size)
 {
-    uint8_t hdr[2] = { SYNC_H, SYNC_L };
-    uint8_t msghdr[3];
-    msghdr[0] = mid;
-    msghdr[1] = (uint8_t)(size & 0xFF);
-    msghdr[2] = (uint8_t)(size >> 8);
-    uint8_t chk = calc_xor(msghdr, 3);
-    if (data && size) chk ^= calc_xor(data, size);
-    int r = 0;
-    r = sp_write(hdr, 2); if (r != 2) return -1;
-    r = sp_write(msghdr, 3); if (r != 3) return -2;
-    if (data && size) { r = sp_write(data, size); if (r != size) return -3; }
-    r = sp_write(&chk, 1); if (r != 1) return -4;
+	uint8_t msgBuf[MAX_CMD_LEN] = {0};
+
+	if (size + 6 > MAX_CMD_LEN)
+	{
+		return -1;
+	}
+
+	msgBuf[0] = SYNC_H;
+	msgBuf[1] = SYNC_L;
+	msgBuf[2] = mid;
+    msgBuf[3] = (uint8_t)(size & 0xFF);
+    msgBuf[4] = (uint8_t)(size >> 8);
+	if (size > 0)
+	{
+		memcpy(msgBuf + 5, data, size);
+	}
+
+	msgBuf[5 + size] = calc_xor(msgBuf + 2, size + 3);
+	
+    int r = sp_write(msgBuf, size + 6);
+	if (r != size + 6)
+	{
+		return -1;
+	}
+
     return 0;
 }
 
@@ -221,8 +236,7 @@ void bfc388_delete_all(uint8_t type, uint16_t begin_id, uint16_t end_id)
 
 void bfc388_get_all_userid(uint8_t fmt)
 {
-    uint8_t d[1] = { fmt };
-    bfc388_send(MID_GET_ALL_USERID, d, sizeof(d));
+    bfc388_send(MID_GET_ALL_USERID, NULL, 0);
 }
 
 void bfc388_snap_image(uint8_t image_counts, uint8_t start_number)
