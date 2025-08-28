@@ -53,6 +53,9 @@
     <ClInclude Include="proto\serial_port_win.h">
       <Filter>proto</Filter>
     </ClInclude>
+    <ClInclude Include="DShowPreview.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="BFC388Tool.rc">

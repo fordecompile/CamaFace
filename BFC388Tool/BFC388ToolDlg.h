@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "proto/bfc388_proto.h"
+#include "DShowPreview.h"
 
 class CBFC388ToolDlg : public CDialogEx
 {
@@ -77,4 +78,6 @@ public:
     afx_msg void OnBnClickedBtnSnap();
     afx_msg void OnBnClickedBtnUploadChar();
     afx_msg void OnBnClickedBtnDownloadChar();
+	CStatic m_wndPreview;
+	DShowPreview m_cam;
 };

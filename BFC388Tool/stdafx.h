@@ -23,6 +23,10 @@
 #include <setupapi.h>
 #pragma comment(lib, "setupapi.lib")
 
+#pragma comment(lib, "strmiids.lib")
+#pragma comment(lib, "quartz.lib")
+
+
 // C runtime
 #include <stdint.h>
 #include <string>

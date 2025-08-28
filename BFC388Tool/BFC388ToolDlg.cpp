@@ -5,6 +5,7 @@
 #include <initguid.h>
 #include <devguid.h>
 #include <ntddser.h>
+#include "DShowPreview.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -40,14 +41,15 @@ CBFC388ToolDlg::CBFC388ToolDlg(CWnd* pParent /*=nullptr*/)
 
 void CBFC388ToolDlg::DoDataExchange(CDataExchange* pDX)
 {
-    CDialogEx::DoDataExchange(pDX);
-    DDX_Control(pDX, IDC_COMBO_PORT, m_cbPort);
-    DDX_Control(pDX, IDC_COMBO_BAUD, m_cbBaud);
-    DDX_Control(pDX, IDC_EDIT_NAME, m_edName);
-    DDX_Control(pDX, IDC_EDIT_ID, m_edId);
-    DDX_Control(pDX, IDC_CHECK_ADMIN, m_chkAdmin);
-    DDX_Control(pDX, IDC_PICTURE, m_pic);
-    DDX_Control(pDX, IDC_EDIT_LOG, m_log);
+	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_COMBO_PORT, m_cbPort);
+	DDX_Control(pDX, IDC_COMBO_BAUD, m_cbBaud);
+	DDX_Control(pDX, IDC_EDIT_NAME, m_edName);
+	DDX_Control(pDX, IDC_EDIT_ID, m_edId);
+	DDX_Control(pDX, IDC_CHECK_ADMIN, m_chkAdmin);
+	DDX_Control(pDX, IDC_PICTURE, m_pic);
+	DDX_Control(pDX, IDC_EDIT_LOG, m_log);
+	DDX_Control(pDX, IDC_PREVIEW, m_wndPreview);
 }
 
 BEGIN_MESSAGE_MAP(CBFC388ToolDlg, CDialogEx)
@@ -72,7 +74,7 @@ END_MESSAGE_MAP()
 BOOL CBFC388ToolDlg::OnInitDialog()
 {
     CDialogEx::OnInitDialog();
-    SetWindowText(L"BFC388 Face Tool");
+    SetWindowText(L"CAMABIO Face Tool");
 
     // Baud rates
     const int bauds[] = {9600,19200,38400,57600,115200,230400,460800,921600};
@@ -87,6 +89,25 @@ BOOL CBFC388ToolDlg::OnInitDialog()
     // set callbacks
     bfc388_set_callbacks(&CBFC388ToolDlg::OnReply, &CBFC388ToolDlg::OnNote, &CBFC388ToolDlg::OnImage, this);
     AppendLog(L"Ready.");
+
+	// 绑定控件（如果未使用 ClassWizard 自动绑定）
+	// m_wndPreview.SubclassDlgItem(IDC_PREVIEW, this);
+
+	// 初始化 COM（MFC 工程一般已调用 AfxOleInit，也可显式初始化）
+	HRESULT hrCo = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+	// hrCo 可能返回 S_FALSE，表示已初始化，无需特殊处理
+
+	// 打开并预览（1：第一个设备；2：根据名称包含子串匹配）
+	HRESULT hr = m_cam.OpenFirst(m_wndPreview.GetSafeHwnd());
+	// 或：HRESULT hr = m_cam.OpenByNamePart(m_wndPreview.GetSafeHwnd(), L"HD USB Camera");
+
+	if (FAILED(hr))
+	{
+		CString msg;
+		msg.Format(L"打开摄像头失败，HRESULT=0x%08X。\n请确认摄像头已连接，或尝试以管理员启动。", hr);
+		AfxMessageBox(msg, MB_ICONERROR);
+	}
+
     return TRUE;
 }
 

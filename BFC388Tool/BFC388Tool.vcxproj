@@ -172,6 +172,7 @@
   <ItemGroup>
     <ClInclude Include="BFC388Tool.h" />
     <ClInclude Include="BFC388ToolDlg.h" />
+    <ClInclude Include="DShowPreview.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="proto\bfc388_proto.h" />
